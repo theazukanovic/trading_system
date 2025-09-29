@@ -31,12 +31,21 @@ while (running)
         if (active_user == null) // om ingen användare hittas
         {
             Console.WriteLine("Wrong email or password");
-            Console.WriteLine("Press space to try again..");
+            Console.WriteLine("Press enter to try again..");
             Console.ReadLine();
         }
     }
     else
     {
         Console.WriteLine("-----Trading system-----");
+        Console.WriteLine("1) Upload item to trade");
+        Console.WriteLine("2) Browse items from other users");
+        Console.WriteLine("3) Request trade");
+        Console.WriteLine("4) Browse trade requests");
+        Console.WriteLine("5) Handle trade requests");
+        Console.WriteLine("6) Browse completed requests");
+        Console.WriteLine("7) Log out");
+
+        string choice = Console.ReadLine();
     }
 }

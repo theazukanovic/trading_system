@@ -6,6 +6,8 @@ public class User
     public string Email;
     string _password;
 
+    public List<Item> Items = new List<Item>(); //varje user ska ha egen lista
+
     public User(string name, string email, string password)
     {
         Name = name;

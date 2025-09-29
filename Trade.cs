@@ -2,16 +2,16 @@ namespace App;
 
 public class Trade
 {
-    public List<Item> Items;
-    public User Sender;
-    public User Receiver;
-    public string Status;
+    public User Sender; //den som vill ha item
+    public User Receiver; //den som äger item
+    public Item Item; //vilken item bytet gäller
+    public TradeStatus Status; //pending, accepted or denied.
 
-    public Trade(List<Item> items, User sender, User receiver, string status)
+    public Trade(User sender, User receiver, Item item)
     {
-        Items = items;
         Sender = sender;
         Receiver = receiver;
-        Status = status;
+        Item = item;
+        Status = TradeStatus.Pending; // alla nya trades börjar som pending
     }
 }
