@@ -73,6 +73,7 @@ while (running)
                 break;
 
             case "2":
+
                 Console.Clear();
                 Console.WriteLine("---Browse items from other users---");
 
@@ -94,7 +95,7 @@ while (running)
                     {
                         foreach (Item item in users[i].Items)
                         {
-                            Console.WriteLine("User:" + " " + item.Name + ": " + item.Description);
+                            Console.WriteLine(item.Name + ": " + item.Description);
                         }
                     }
 
@@ -106,6 +107,72 @@ while (running)
                 {
                     Console.WriteLine("No other users yet");
                 }
+                Console.WriteLine("Press enter to go back to menu");
+                Console.ReadLine();
+                break;
+
+            case "3":
+
+                Console.Clear();
+                Console.WriteLine("---Request a trade---");
+                //fråga vem man vill skicka en request till
+                Console.Write("Owner name: ");
+                string ownerName = Console.ReadLine();
+
+                User owner = null; //spara ägaren
+                //Leta efter användaren i listan:
+                for (int i = 0; i < users.Count; i++)
+                {
+                    if (users[i] != active_user && users[i].Name == ownerName) //kolla så den inloggade inte är användaren
+                    {
+                        owner = users[i];
+                        break;
+                    }
+                }
+                //om ingen hittades eller om man skrev fel namn
+                if (owner == null)
+                {
+                    Console.WriteLine("Owner not found, press enter to go back");
+                    Console.ReadLine();
+                    break;
+                }
+                //om användaren inte har några items
+                if (owner.Items.Count == 0)
+                {
+                    Console.WriteLine(owner.Name + " has no items. Press enter to go back");
+                    Console.ReadLine();
+                    break;
+                }
+                // visa användarens items
+                Console.WriteLine("User" + " " + owner.Name + " " + "inventory:");
+                foreach (Item item in owner.Items)
+                {
+                    Console.WriteLine(item.Name + ": " + item.Description);
+                }
+                //fråga efter namn på item man vill ha
+                Console.Write("Enter exact item name you want: ");
+                string wantedName = Console.ReadLine();
+
+                Item wantedItem = null;
+                foreach (Item item in owner.Items)
+                {
+                    if (item.Name == wantedName)
+                    {
+                        wantedItem = item;
+                        break;
+                    }
+                }
+                //om item inte fanns
+                if (wantedItem == null)
+                {
+                    Console.WriteLine("Item not found, press enter to go back");
+                    Console.ReadLine();
+                    break;
+                }
+                //skapa en trade
+                Trade trade = new Trade(active_user, owner, wantedItem);
+                trades.Add(trade);
+                Console.WriteLine("Trade request sent (pending).");
                 Console.WriteLine("Press enter to go back to menu");
                 Console.ReadLine();
                 break;
