@@ -9,10 +9,27 @@ users.Add(new User("Manuel", "manuel", "manuel")); //testanavändare2
 users.Add(new User("Marcus", "marcus", "marcus")); // test3
 users.Add(new User("Malin", "malin", "malin")); // test 4
 
+//filhantering: läs in users om filen finns
+if (File.Exists("users.txt"))
+{
+    string[] lines = File.ReadAllLines("users.txt");
+    foreach (string line in lines)
+    {
+        string[] parts = line.Split(','); //Name, email, password
+        if (parts.Length == 3)
+        {
+            string name = parts[0];
+            string email = parts[1];
+            string password = parts[2];
+            users.Add(new User(name, email, password));
+        }
+    }
+}
+
 User? active_user = null; //om man sätter null så betyder det att är det ingen användare som är selected = utloggad
 
 bool running = true;
-while (running) //kommentar till mig själv: borde man kunna skapa konto?
+while (running)
 {
     if (active_user == null)
     {
@@ -58,8 +75,25 @@ while (running) //kommentar till mig själv: borde man kunna skapa konto?
                 string newEmail = Console.ReadLine();
                 Console.WriteLine("Password:  ");
                 string newPassword = Console.ReadLine();
+                //lägg till i minnet
                 User newUser = new User(newName, newEmail, newPassword);
                 users.Add(newUser);
+
+                //Skapar en lista som ska sparas till filen
+                List<string> newUserCreated = new List<string>();
+                //läser in gamla rader (om filen finns) och kopiera in den i listan
+                if (File.Exists("users.txt"))
+                {
+                    string[] oldLines = File.ReadAllLines("users.txt");
+                    foreach (string line in oldLines)
+                    {
+                        newUserCreated.Add(line);
+                    }
+                }
+                //lägg till den nya användaren sist
+                newUserCreated.Add(newName + "," + newEmail + "," + newPassword);
+                //skriv hela listan tillbaka till filen
+                File.WriteAllLines("users.txt", newUserCreated);
 
                 Console.WriteLine("Account created! Press enter to log in");
                 Console.ReadLine();
