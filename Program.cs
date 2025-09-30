@@ -4,10 +4,10 @@ List<User> users = new List<User>();
 List<Trade> trades = new List<Trade>();
 List<Item> items = new List<Item>();
 
-users.Add(new User("Thea", "t.z@hotmail.se", "thea")); //testanvändare
-users.Add(new User("Manuel", "manuel@gmail.com", "hej")); //testanavändare2
-users.Add(new User("Marcus", "marcus@hotmail.com", "hej")); // test3
-users.Add(new User("Malin", "malin@hotmail.se", "malin")); // test 4
+users.Add(new User("Thea", "thea", "thea")); //testanvändare
+users.Add(new User("Manuel", "manuel", "manuel")); //testanavändare2
+users.Add(new User("Marcus", "marcus", "marcus")); // test3
+users.Add(new User("Malin", "malin", "malin")); // test 4
 
 User? active_user = null; //om man sätter null så betyder det att är det ingen användare som är selected = utloggad
 
@@ -204,9 +204,45 @@ while (running) //kommentar till mig själv: borde man kunna skapa konto?
                 Console.ReadLine();
                 break;
 
-            // case "4":
+            case "4":
+                Console.Clear();
+                Console.WriteLine("Incoming trade requests to you:  ");
+                foreach (Trade t in trades) // loopa igenom alla trades
+                {
+                    if (t.Receiver == active_user) //om den inloggade är mottagare
+                    { //skriv ut vem som skickade samt vilket item och status
+                        Console.WriteLine(
+                            t.Sender.Name + " " + "wants" + t.Item.Name + "[" + t.Status + "]"
+                        );
+                    }
+                }
+                Console.WriteLine();
+                Console.WriteLine("Here is your outgoing requests:  ");
+                foreach (Trade t in trades)
+                {
+                    if (t.Sender == active_user) //om den inloggade är avsändare
+                    {
+                        Console.WriteLine(
+                            "Sent to"
+                                + t.Receiver.Name
+                                + " for "
+                                + t.Item.Name
+                                + "["
+                                + t.Status
+                                + "]"
+                        );
+                    }
+                }
+                Console.WriteLine("\nPress enter to go back to menu");
+                Console.ReadLine();
+                break;
+
+            // case "5":
             //     Console.Clear();
-            //     Console.WriteLine("Here is all your trade requests:  ");
+            //     Console.WriteLine("--Handle trade requests--");
+            //     //samla alla pending som är skickade till active user
+            //     List<Trade> myPending = new List<Trade>();
+            //     foreach
         }
     }
 }
