@@ -102,36 +102,23 @@ while (running) //kommentar till mig själv: borde man kunna skapa konto?
 
                 Console.Clear();
                 Console.WriteLine("---Browse items from other users---");
-
-                int count = 0; //räknar hur många andra användare vi visar
-
-                //Loopa igenom alla användare
-                for (int i = 0; i < users.Count; i++)
+                foreach (User user in users)
                 {
-                    if (users[i] == active_user)
-                        continue; //hoppa över inloggad användare
-
-                    Console.WriteLine("User" + " " + users[i].Name + " " + "inventory:");
-
-                    if (users[i].Items.Count == 0)
+                    if (user != active_user) //visa bara andra användare
                     {
-                        Console.WriteLine("There is no items to show..");
-                    }
-                    else
-                    {
-                        foreach (Item item in users[i].Items)
+                        Console.WriteLine("User " + user.Name + " inventory:");
+                        bool found = false; //utgå ifrån att vi inte hittar några items
+                        foreach (Item item in user.Items)
                         {
                             Console.WriteLine(item.Name + ": " + item.Description);
+                            found = true; //så fort vi hittar ett item ändra till true
                         }
+                        if (found == false) //om vi inte hittar några
+                        {
+                            Console.WriteLine("[no items]");
+                        }
+                        Console.WriteLine();
                     }
-
-                    count++; //vi visar en användare
-                    Console.WriteLine();
-                }
-                //om count är 0 = inga andra användare
-                if (count == 0)
-                {
-                    Console.WriteLine("No other users yet");
                 }
                 Console.WriteLine("Press enter to go back to menu");
                 Console.ReadLine();
@@ -147,35 +134,26 @@ while (running) //kommentar till mig själv: borde man kunna skapa konto?
 
                 User owner = null; //spara ägaren
                 //Leta efter användaren i listan:
-                for (int i = 0; i < users.Count; i++)
+                foreach (User user in users)
                 {
-                    if (users[i] != active_user && users[i].Name == ownerName) //kolla så den inloggade inte är användaren
+                    if (user != active_user && user.Name == ownerName)
                     {
-                        owner = users[i];
+                        owner = user;
                         break;
                     }
                 }
-                //om ingen hittades eller om man skrev fel namn
                 if (owner == null)
                 {
                     Console.WriteLine("Owner not found, press enter to go back");
                     Console.ReadLine();
                     break;
                 }
-                //om användaren inte har några items
-                if (owner.Items.Count == 0)
-                {
-                    Console.WriteLine(owner.Name + " has no items. Press enter to go back");
-                    Console.ReadLine();
-                    break;
-                }
-                // visa användarens items
-                Console.WriteLine("User" + " " + owner.Name + " " + "inventory:");
+                //kolla om owner har några items
+                bool foundOwnerItem = false;
                 foreach (Item item in owner.Items)
                 {
                     Console.WriteLine(item.Name + ": " + item.Description);
                 }
-                //fråga efter namn på item man vill ha
                 Console.Write("Enter exact item name you want: ");
                 string wantedName = Console.ReadLine();
 
@@ -188,19 +166,15 @@ while (running) //kommentar till mig själv: borde man kunna skapa konto?
                         break;
                     }
                 }
-                //om item inte fanns
                 if (wantedItem == null)
                 {
                     Console.WriteLine("Item not found, press enter to go back");
                     Console.ReadLine();
                     break;
                 }
-                //skapa en trade
                 Trade trade = new Trade(active_user, owner, wantedItem);
                 trades.Add(trade);
-                Console.WriteLine("Trade request sent.");
-                Console.WriteLine("Status: Pending....");
-                Console.WriteLine("Press enter to go back to menu");
+                Console.WriteLine("Trade request sent [pending]");
                 Console.ReadLine();
                 break;
 
@@ -240,9 +214,7 @@ while (running) //kommentar till mig själv: borde man kunna skapa konto?
             // case "5":
             //     Console.Clear();
             //     Console.WriteLine("--Handle trade requests--");
-            //     //samla alla pending som är skickade till active user
-            //     List<Trade> myPending = new List<Trade>();
-            //     foreach
+            // //visa alla pending requests som är skickade till inloggad användare
         }
     }
 }
