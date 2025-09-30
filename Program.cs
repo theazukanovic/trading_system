@@ -2,6 +2,7 @@
 
 List<User> users = new List<User>();
 List<Trade> trades = new List<Trade>();
+List<Item> items = new List<Item>();
 
 users.Add(new User("Thea", "t.z@hotmail.se", "thea")); //testanvändare
 users.Add(new User("Manuel", "manuel@gmail.com", "hej")); //testanavändare2
@@ -11,37 +12,62 @@ users.Add(new User("Malin", "malin@hotmail.se", "malin")); // test 4
 User? active_user = null; //om man sätter null så betyder det att är det ingen användare som är selected = utloggad
 
 bool running = true;
-while (running)
+while (running) //kommentar till mig själv: borde man kunna skapa konto?
 {
-    Console.Clear();
-
     if (active_user == null)
     {
-        Console.Write("Email: ");
-        string email = Console.ReadLine();
         Console.Clear();
+        Console.WriteLine("---Welcome to trading system!---"); //// kommentar till mig själv:måste lägga till att registrera account
+        Console.WriteLine("1) Log in");
+        Console.WriteLine("2) Make an account");
 
-        Console.Write("Password: ");
-        string password = Console.ReadLine();
-        Console.Clear();
+        string pickoption = Console.ReadLine();
+        switch (pickoption)
+        {
+            case "1":
+                Console.Write("Email: ");
+                string email = Console.ReadLine();
+                Console.Clear();
 
-        foreach (User user in users) //kollar igenom alla användare
-        {
-            if (user.TryLogin(email, password))
-            {
-                active_user = user;
-                break; //sluta leta om vi hittar rätt
-            }
-        }
-        if (active_user == null) // om ingen användare hittas
-        {
-            Console.WriteLine("Wrong email or password");
-            Console.WriteLine("Press enter to try again..");
-            Console.ReadLine();
+                Console.Write("Password: ");
+                string password = Console.ReadLine();
+                Console.Clear();
+
+                foreach (User user in users) //kollar igenom alla användare
+                {
+                    if (user.TryLogin(email, password))
+                    {
+                        active_user = user;
+                        break; //sluta leta om vi hittar rätt
+                    }
+                }
+                if (active_user == null) // om ingen användare hittas
+                {
+                    Console.WriteLine("Wrong email or password");
+                    Console.WriteLine("Press enter to try again or make an account..");
+                    Console.ReadLine();
+                }
+                break;
+
+            case "2":
+                Console.Clear();
+                Console.WriteLine("---Lets create an account!---");
+                Console.WriteLine("Firstname: ");
+                string newName = Console.ReadLine();
+                Console.WriteLine("Email:  ");
+                string newEmail = Console.ReadLine();
+                Console.WriteLine("Password:  ");
+                string newPassword = Console.ReadLine();
+                User newUser = new User(newName, newEmail, newPassword);
+                users.Add(newUser);
+
+                Console.WriteLine("Account created! Press enter to log in");
+                Console.ReadLine();
+                break;
         }
     }
     else
-    { // borde man kunna se inventory?
+    { // kommentar till mig själv: borde man kunna se inventory?
         Console.WriteLine("-----Trading system-----");
         Console.WriteLine("1) Upload item to trade");
         Console.WriteLine("2) Browse items from other users");
@@ -172,10 +198,15 @@ while (running)
                 //skapa en trade
                 Trade trade = new Trade(active_user, owner, wantedItem);
                 trades.Add(trade);
-                Console.WriteLine("Trade request sent (pending).");
+                Console.WriteLine("Trade request sent.");
+                Console.WriteLine("Status: Pending....");
                 Console.WriteLine("Press enter to go back to menu");
                 Console.ReadLine();
                 break;
+
+            // case "4":
+            //     Console.Clear();
+            //     Console.WriteLine("Here is all your trade requests:  ");
         }
     }
 }
