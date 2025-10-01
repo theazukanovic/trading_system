@@ -12,10 +12,10 @@ users.Add(new User("Malin", "malin", "malin")); // test 4
 //filhantering: läs in users om filen finns
 if (File.Exists("users.txt"))
 {
-    string[] lines = File.ReadAllLines("users.txt");
-    foreach (string line in lines)
+    string[] userLines = File.ReadAllLines("users.txt");
+    foreach (string userRow in userLines)
     {
-        string[] parts = line.Split(','); //Name, email, password
+        string[] parts = userRow.Split(','); //Name, email, password
         if (parts.Length == 3)
         {
             string name = parts[0];
@@ -29,10 +29,10 @@ if (File.Exists("users.txt"))
 //filhantering:läsa in items
 if (File.Exists("items.txt"))
 {
-    string[] lines = File.ReadAllLines("items.txt");
-    foreach (string line in lines)
+    string[] itemLines = File.ReadAllLines("items.txt");
+    foreach (string itemRow in itemLines)
     {
-        string[] parts = line.Split(',');
+        string[] parts = itemRow.Split(',');
         if (parts.Length == 3)
         {
             string ownerEmail = parts[0];
@@ -62,60 +62,66 @@ if (File.Exists("items.txt"))
 //filhantering: läsa in trades
 if (File.Exists("trades.txt"))
 {
-    string[] lines = File.ReadAllLines("trades.txt");
-    foreach (string line in lines)
+    string[] tradeLines = File.ReadAllLines("trades.txt");
+    foreach (string tradeRow in tradeLines)
     {
-        string[] parts = line.Split(',');
-        if (parts.Length == 4)
+        if (tradeRow != null && tradeRow.Length > 0)
         {
-            string senderEmail = parts[0];
-            string receiverEmail = parts[1];
-            string itemName = parts[2];
-            string statusText = parts[3];
-            //slå upp sender
-            User sender = null;
-            foreach (User user in users)
+            string[] parts = tradeRow.Split(',');
+            if (parts.Length == 4)
             {
-                if (user.Email == senderEmail)
+                string senderEmail = parts[0];
+                string receiverEmail = parts[1];
+                string itemName = parts[2];
+                string statusText = parts[3];
+                //hitta sender
+                User sender = null;
+                foreach (User user in users)
                 {
-                    sender = user;
-                    break;
-                }
-            }
-            //slå upp receiver
-            User receiver = null;
-            foreach (User user in users)
-            {
-                if (user.Email == receiverEmail)
-                {
-                    receiver = user;
-                    break;
-                }
-            }
-            //slå upp item hos receiver
-            Item item = null;
-            if (receiver != null)
-            {
-                foreach (Item it in receiver.Items)
-                {
-                    if (it.Name == itemName)
+                    if (user.Email == senderEmail)
                     {
-                        item = it;
+                        sender = user;
                         break;
                     }
                 }
-            }
-            if (sender != null && receiver != null && item != null)
-            {
+                //hitta receiver
+                User receiver = null;
+                foreach (User user in users)
+                {
+                    if (user.Email == receiverEmail)
+                    {
+                        receiver = user;
+                        break;
+                    }
+                }
+                //hitta item hos receiver
+                Item item = null;
+                if (receiver != null && receiver.Items != null)
+                {
+                    foreach (Item it in receiver.Items)
+                    {
+                        if (it.Name == itemName)
+                        {
+                            item = it;
+                            break;
+                        }
+                    }
+                }
+                //status
                 TradeStatus status = TradeStatus.Pending;
                 if (statusText == "Accepted")
+                {
                     status = TradeStatus.Accepted;
+                }
                 else if (statusText == "Denied")
+                {
                     status = TradeStatus.Denied;
-
-                Trade trade = new Trade(sender, receiver, item);
-                trade.Status = status;
-                trades.Add(trade);
+                }
+                //lägg bara till om allt hittades
+                if (sender != null && receiver != null && item != null)
+                {
+                    trades.Add(new Trade(sender, receiver, item, status));
+                }
             }
         }
     }
@@ -227,10 +233,10 @@ while (running)
                 List<string> itemLines = new List<string>();
                 if (File.Exists("items.txt"))
                 {
-                    string[] oldline = File.ReadAllLines("items.txt");
-                    foreach (string line in oldline)
+                    string[] existingItemRows = File.ReadAllLines("items.txt");
+                    foreach (string row in existingItemRows)
                     {
-                        itemLines.Add(line);
+                        itemLines.Add(row);
                     }
                 }
                 //lägg till den nya item sist
@@ -276,17 +282,17 @@ while (running)
                 Console.Write("Owner name: ");
                 string ownerName = Console.ReadLine();
 
-                User owner = null; //spara ägaren
-                //Leta efter användaren i listan:
+                //leta upp användaren med det namnet som inte är inloggad
+                User owner = null;
                 foreach (User user in users)
                 {
-                    if (user != active_user && user.Name == ownerName)
+                    if (user != null && user != active_user && user.Name == ownerName)
                     {
                         owner = user;
                         break;
                     }
                 }
-                if (owner == null)
+                if (owner == null) //om ingen användare hittades
                 {
                     Console.WriteLine("Owner not found, press enter to go back");
                     Console.ReadLine();
@@ -297,7 +303,7 @@ while (running)
                 foreach (Item item in owner.Items)
                 {
                     hasItems = true;
-                    break;
+                    break; //om vi hittar minst ett item så stopp
                 }
                 if (!hasItems)
                 {
@@ -305,23 +311,26 @@ while (running)
                     Console.ReadLine();
                     break;
                 }
+                //visa ägarens items
                 Console.WriteLine("User " + owner.Name + " inventory:");
-                foreach (Item item in owner.Items)
+                foreach (Item it in owner.Items)
                 {
-                    Console.WriteLine(item.Name + ": " + item.Description);
+                    Console.WriteLine(it.Name + ": " + it.Description);
                 }
+                //leta efter namnet på det item man vill ha
                 Console.Write("Enter the item you want: ");
                 string wantedName = Console.ReadLine().ToLower();
-
+                //leta upp det itemet i ägarens lista
                 Item wantedItem = null;
-                foreach (Item item in owner.Items)
+                foreach (Item it in owner.Items)
                 {
-                    if (item.Name.ToLower() == wantedName)
+                    if (it.Name.ToLower() == wantedName)
                     {
-                        wantedItem = item;
+                        wantedItem = it;
                         break;
                     }
                 }
+                //om item inte hittades
                 if (wantedItem == null)
                 {
                     Console.WriteLine("Item not found, press enter to go back");
@@ -329,23 +338,18 @@ while (running)
                     break;
                 }
                 // skapa trade (pending by default)
-                Trade trade = new Trade(active_user, owner, wantedItem);
+                Trade trade = new Trade(active_user, owner, wantedItem, TradeStatus.Pending);
                 trades.Add(trade);
-                //spara alla trades till fil
-                List<string> tradeLines = new List<string>();
-                foreach (Trade tr in trades)
-                {
-                    tradeLines.Add(
-                        tr.Sender.Email
-                            + ", "
-                            + tr.Receiver.Email
-                            + ", "
-                            + tr.Item.Name
-                            + ", "
-                            + tr.Status.ToString()
-                    );
-                }
-                File.WriteAllLines("trades.txt", tradeLines);
+                //appenda till filen
+                string newTradeRow =
+                    trade.Sender.Email
+                    + ","
+                    + trade.Receiver.Email
+                    + ","
+                    + trade.Item.Name
+                    + ","
+                    + trade.Status.ToString();
+                File.AppendAllText("trades.txt", newTradeRow + Environment.NewLine);
 
                 Console.WriteLine("Trade request sent...");
                 Console.WriteLine("Status: [pending..]");
@@ -355,24 +359,47 @@ while (running)
 
             case "4":
                 Console.Clear();
-                Console.WriteLine("Incoming trade requests to you:  ");
+                Console.WriteLine("--Incoming trade requests---");
+
+                bool incomingTr = false;
                 foreach (Trade t in trades) // loopa igenom alla trades
                 {
-                    if (t.Receiver == active_user) //om den inloggade är mottagare
+                    if (
+                        t != null
+                        && t.Receiver != null
+                        && t.Receiver.Email != null
+                        && active_user != null
+                        && active_user.Email != null
+                        && t.Receiver.Email == active_user.Email
+                        && t.Status == TradeStatus.Pending
+                    ) //om den inloggade är mottagare
                     { //skriv ut vem som skickade samt vilket item och status
                         Console.WriteLine(
                             t.Sender.Name + " " + "wants" + t.Item.Name + "[" + t.Status + "]"
                         );
+                        incomingTr = true;
                     }
                 }
-                Console.WriteLine();
-                Console.WriteLine("Here is your outgoing requests:  ");
-                foreach (Trade t in trades)
+                if (incomingTr == false)
                 {
-                    if (t.Sender == active_user) //om den inloggade är avsändare
+                    Console.WriteLine("(no incoming requests)");
+                }
+                Console.WriteLine("---Your outgoing requests--");
+
+                bool outgoingTr = false;
+                foreach (Trade t in trades)
+                { //kolla om användarens email är samma som den inloggades
+                    if (
+                        t != null
+                        && t.Sender != null
+                        && t.Sender.Email != null
+                        && active_user != null
+                        && active_user.Email != null
+                        && t.Sender.Email == active_user.Email
+                    )
                     {
                         Console.WriteLine(
-                            "Sent to"
+                            "Sent to "
                                 + t.Receiver.Name
                                 + " for "
                                 + t.Item.Name
@@ -380,7 +407,12 @@ while (running)
                                 + t.Status
                                 + "]"
                         );
+                        outgoingTr = true;
                     }
+                }
+                if (outgoingTr == false)
+                {
+                    Console.WriteLine("(no outgoing requests)");
                 }
                 Console.WriteLine("\nPress enter to go back to menu");
                 Console.ReadLine();

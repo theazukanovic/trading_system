@@ -7,11 +7,11 @@ public class Trade
     public Item Item; //vilken item bytet gäller
     public TradeStatus Status; //pending, accepted or denied.
 
-    public Trade(User sender, User receiver, Item item)
+    public Trade(User sender, User receiver, Item item, TradeStatus status)
     {
         Sender = sender;
         Receiver = receiver;
         Item = item;
-        Status = TradeStatus.Pending; // alla nya trades börjar som pending
+        Status = status;
     }
 }
