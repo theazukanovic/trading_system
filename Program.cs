@@ -26,6 +26,39 @@ if (File.Exists("users.txt"))
     }
 }
 
+//filhantering:läsa in items
+if (File.Exists("items.txt"))
+{
+    string[] lines = File.ReadAllLines("items.txt");
+    foreach (string line in lines)
+    {
+        string[] parts = line.Split(',');
+        if (parts.Length == 3)
+        {
+            string ownerEmail = parts[0];
+            string itemName = parts[1];
+            string desc = parts[2];
+
+            // hitta ägaren via email
+            User owner = null;
+            foreach (User user in users)
+            {
+                if (user.Email == ownerEmail)
+                {
+                    owner = user;
+                    break;
+                }
+            }
+            if (owner != null)
+            {
+                Item item = new Item(itemName, desc, owner);
+                owner.Items.Add(item); //lägg i ägarens invetory
+                items.Add(item);
+            }
+        }
+    }
+}
+
 User? active_user = null; //om man sätter null så betyder det att är det ingen användare som är selected = utloggad
 
 bool running = true;
@@ -126,6 +159,21 @@ while (running)
                 Item newItem = new Item(name, desc, active_user);
                 //lägg in item i den inloggade användarens inventory:
                 active_user.Items.Add(newItem);
+                items.Add(newItem);
+
+                //läs in gamla rader i fil om det finns
+                List<string> itemLines = new List<string>();
+                if (File.Exists("items.txt"))
+                {
+                    string[] oldline = File.ReadAllLines("items.txt");
+                    foreach (string line in oldline)
+                    {
+                        itemLines.Add(line);
+                    }
+                }
+                //lägg till den nya item sist
+                itemLines.Add(active_user.Email + "," + name + "," + desc);
+                File.WriteAllLines("items.txt", itemLines);
 
                 Console.WriteLine("Item added!");
                 Console.WriteLine("Press enter to go back to the menu..");
