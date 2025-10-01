@@ -59,6 +59,68 @@ if (File.Exists("items.txt"))
     }
 }
 
+//filhantering: läsa in trades
+if (File.Exists("trades.txt"))
+{
+    string[] lines = File.ReadAllLines("trades.txt");
+    foreach (string line in lines)
+    {
+        string[] parts = line.Split(',');
+        if (parts.Length == 4)
+        {
+            string senderEmail = parts[0];
+            string receiverEmail = parts[1];
+            string itemName = parts[2];
+            string statusText = parts[3];
+            //slå upp sender
+            User sender = null;
+            foreach (User user in users)
+            {
+                if (user.Email == senderEmail)
+                {
+                    sender = user;
+                    break;
+                }
+            }
+            //slå upp receiver
+            User receiver = null;
+            foreach (User user in users)
+            {
+                if (user.Email == receiverEmail)
+                {
+                    receiver = user;
+                    break;
+                }
+            }
+            //slå upp item hos receiver
+            Item item = null;
+            if (receiver != null)
+            {
+                foreach (Item it in receiver.Items)
+                {
+                    if (it.Name == itemName)
+                    {
+                        item = it;
+                        break;
+                    }
+                }
+            }
+            if (sender != null && receiver != null && item != null)
+            {
+                TradeStatus status = TradeStatus.Pending;
+                if (statusText == "Accepted")
+                    status = TradeStatus.Accepted;
+                else if (statusText == "Denied")
+                    status = TradeStatus.Denied;
+
+                Trade trade = new Trade(sender, receiver, item);
+                trade.Status = status;
+                trades.Add(trade);
+            }
+        }
+    }
+}
+
 User? active_user = null; //om man sätter null så betyder det att är det ingen användare som är selected = utloggad
 
 bool running = true;
@@ -231,18 +293,30 @@ while (running)
                     break;
                 }
                 //kolla om owner har några items
-                bool foundOwnerItem = false;
+                bool hasItems = false;
+                foreach (Item item in owner.Items)
+                {
+                    hasItems = true;
+                    break;
+                }
+                if (!hasItems)
+                {
+                    Console.WriteLine(owner.Name + " has no items. Press enter to go back");
+                    Console.ReadLine();
+                    break;
+                }
+                Console.WriteLine("User " + owner.Name + " inventory:");
                 foreach (Item item in owner.Items)
                 {
                     Console.WriteLine(item.Name + ": " + item.Description);
                 }
-                Console.Write("Enter exact item name you want: ");
-                string wantedName = Console.ReadLine();
+                Console.Write("Enter the item you want: ");
+                string wantedName = Console.ReadLine().ToLower();
 
                 Item wantedItem = null;
                 foreach (Item item in owner.Items)
                 {
-                    if (item.Name == wantedName)
+                    if (item.Name.ToLower() == wantedName)
                     {
                         wantedItem = item;
                         break;
@@ -254,9 +328,28 @@ while (running)
                     Console.ReadLine();
                     break;
                 }
+                // skapa trade (pending by default)
                 Trade trade = new Trade(active_user, owner, wantedItem);
                 trades.Add(trade);
-                Console.WriteLine("Trade request sent [pending]");
+                //spara alla trades till fil
+                List<string> tradeLines = new List<string>();
+                foreach (Trade tr in trades)
+                {
+                    tradeLines.Add(
+                        tr.Sender.Email
+                            + ", "
+                            + tr.Receiver.Email
+                            + ", "
+                            + tr.Item.Name
+                            + ", "
+                            + tr.Status.ToString()
+                    );
+                }
+                File.WriteAllLines("trades.txt", tradeLines);
+
+                Console.WriteLine("Trade request sent...");
+                Console.WriteLine("Status: [pending..]");
+                Console.WriteLine("Press enter to go back to menu");
                 Console.ReadLine();
                 break;
 
