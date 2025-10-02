@@ -1,2 +1,2 @@
 Maja,maja,maja
-dino,dino,dino
+Dino,dino,dino

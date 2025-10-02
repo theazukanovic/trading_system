@@ -73,7 +73,7 @@ if (File.Exists("trades.txt"))
                 string senderEmail = parts[0];
                 string receiverEmail = parts[1];
                 string requestedName = parts[2];
-                string offeredName = parts[3];
+                string offeredNames = parts[3];
                 string statusText = parts[4];
                 //hitta sender
                 User sender = null;
@@ -108,18 +108,25 @@ if (File.Exists("trades.txt"))
                         }
                     }
                 }
-                Item offeredItem = null;
+                //Erbjudna namn/items = bygg lista av items hos sender
+                List<Item> offeredItems = new List<Item>();
                 if (sender != null)
                 {
-                    foreach (Item it in sender.Items)
+                    string[] offeredNameList = offeredNames.Split('|');
+                    foreach (string oneName in offeredNameList)
                     {
-                        if (it.Name == offeredName)
+                        Item found = null;
+                        foreach (Item it in sender.Items)
                         {
-                            offeredItem = it;
-                            break;
+                            if (it.Name == oneName)
+                            {
+                                offeredItems.Add(it);
+                                break;
+                            }
                         }
                     }
                 }
+
                 //status
                 TradeStatus status = TradeStatus.Pending;
                 if (statusText == "Accepted")
@@ -131,14 +138,15 @@ if (File.Exists("trades.txt"))
                     status = TradeStatus.Denied;
                 }
                 //lägg bara till om allt hittades
-                if (
-                    sender != null
-                    && receiver != null
-                    && requestedItem != null
-                    && offeredItem != null
-                )
+                bool hasAnyOffered = false;
+                foreach (Item it in offeredItems)
                 {
-                    trades.Add(new Trade(sender, receiver, requestedItem, offeredItem, status));
+                    hasAnyOffered = true;
+                    break;
+                }
+                if (sender != null && receiver != null && requestedItem != null && hasAnyOffered)
+                {
+                    trades.Add(new Trade(sender, receiver, requestedItem, offeredItems, status));
                 }
             }
         }
@@ -335,58 +343,135 @@ while (running)
                 {
                     Console.WriteLine(it.Name + ": " + it.Description);
                 }
-                //leta efter namnet på det item man vill ha
+                //Välj vilket item du vill ha
                 Console.Write("Enter the item you want: ");
-                string wantedName = Console.ReadLine().ToLower();
-                //leta upp det itemet i ägarens lista
+                string wantedName = Console.ReadLine();
+                string wantedNameLower = "";
+                if (wantedName != null)
+                {
+                    wantedNameLower = wantedName.ToLower();
+                }
                 Item wantedItem = null;
                 foreach (Item it in owner.Items)
                 {
-                    if (it.Name.ToLower() == wantedName)
+                    if (it.Name != null && it.Name.ToLower() == wantedNameLower)
                     {
                         wantedItem = it;
                         break;
                     }
                 }
-                //om item inte hittades
                 if (wantedItem == null)
                 {
                     Console.WriteLine("Item not found, press enter to go back");
                     Console.ReadLine();
                     break;
                 }
-                //fråga vad den inloggade erbjuder
-                Console.WriteLine("Which of your items do you want to offer in exchange?");
+                //visa din invenotry med index
+                Console.WriteLine("---YOUR ITEMS---");
+                Console.WriteLine("Type a number to add, empty line to finish: ");
+
+                bool haveItems = false;
                 foreach (Item it in active_user.Items)
                 {
-                    Console.WriteLine(it.Name + ": " + it.Description);
+                    haveItems = true;
+                    break;
                 }
-                string offerName = Console.ReadLine().ToLower();
-                Item offeredItem = null;
-                foreach (Item it in active_user.Items)
+                if (haveItems == false)
                 {
-                    if (it.Name.ToLower() == offerName)
-                    {
-                        offeredItem = it;
-                        break;
-                    }
-                }
-                if (offeredItem == null)
-                {
-                    Console.WriteLine("You don't own that item, press enter to go back");
+                    Console.WriteLine("You have no items to offer. Press enter to go back");
                     Console.ReadLine();
                     break;
                 }
-                // skapa trade (pending by default)
+                //skriva ut dina items med index
+                int showIdx = 1;
+                foreach (Item it in active_user.Items)
+                {
+                    Console.WriteLine(showIdx + ") " + it.Name);
+                    showIdx = showIdx + 1;
+                }
+                //läs valen ett i taget. Tom rad = klart
+                List<Item> offeredItems = new List<Item>();
+                while (true)
+                {
+                    Console.WriteLine("Pick number (enter to finish): ");
+                    string pick = Console.ReadLine();
+
+                    if (pick == null || pick == "")
+                    {
+                        break; //tom rad = klart
+                    }
+                    int i = 0;
+                    bool pickedNumber = int.TryParse(pick, out i);
+
+                    if (pickedNumber)
+                    {
+                        //leta upp item med index i
+                        Item selectedItem = null;
+                        int idxCount = 1;
+                        foreach (Item it in active_user.Items)
+                        {
+                            if (idxCount == i)
+                            {
+                                selectedItem = it;
+                                break;
+                            }
+                            idxCount = idxCount + 1;
+                        }
+                        if (selectedItem == null)
+                        {
+                            Console.WriteLine("No item at that number.");
+                        }
+                        else
+                        {
+                            //undvika dubbla
+                            bool doublette = false;
+                            foreach (Item itof in offeredItems)
+                            {
+                                if (itof == selectedItem)
+                                {
+                                    doublette = true;
+                                    break;
+                                }
+                            }
+                            if (doublette)
+                            {
+                                Console.WriteLine("That item is already selected..");
+                            }
+                            else
+                            {
+                                offeredItems.Add(selectedItem);
+                                Console.WriteLine("Added:  " + selectedItem.Name);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Pleade enter a valid number or press enter to finish");
+                    }
+                }
                 Trade trade = new Trade(
                     active_user,
                     owner,
                     wantedItem,
-                    offeredItem,
+                    offeredItems,
                     TradeStatus.Pending
                 );
                 trades.Add(trade);
-                //appenda till filen
+                //spara alla offered names. om listan är tom blir det en tom sträng
+                string offeredNamesStr = "";
+                bool firstName = true;
+                foreach (Item itof in trade.OfferedItem)
+                {
+                    if (firstName)
+                    {
+                        offeredNamesStr = itof.Name;
+                        firstName = false;
+                    }
+                    else
+                    {
+                        offeredNamesStr = offeredNamesStr + "|" + itof.Name;
+                    }
+                }
                 string newTradeRow =
                     trade.Sender.Email
                     + ","
@@ -394,10 +479,11 @@ while (running)
                     + ","
                     + trade.RequestedItem.Name
                     + ","
-                    + trade.OfferedItem.Name
+                    + offeredNamesStr
                     + ","
                     + trade.Status.ToString();
-                File.AppendAllText("trades.txt", newTradeRow + Environment.NewLine);
+
+                File.AppendAllText("trades.txt", newTradeRow + "\n");
 
                 Console.WriteLine("Trade request sent...");
                 Console.WriteLine("Status: [pending..]");
@@ -418,57 +504,80 @@ while (running)
                         && t.Receiver.Email == active_user.Email
                         && t.Status == TradeStatus.Pending
                     )
-                    //om den inloggade är mottagare
-                    { //skriv ut vem som skickade samt vilket item och status
-                        Console.WriteLine(
-                            t.Sender.Name
-                                + " "
-                                + "wants"
-                                + t.RequestedItem.Name
-                                + " "
-                                + "in exchange for their"
-                                + t.OfferedItem.Name
-                                + "["
-                                + t.Status
-                                + "]"
-                        );
+                    { //alla erbjudna items
+                        string offeredList = "";
+                        bool first = true;
+                        foreach (Item itof in t.OfferedItem)
+                        {
+                            if (first)
+                            {
+                                offeredList = itof.Name;
+                                first = false;
+                            }
+                            else
+                            {
+                                offeredList = offeredList + ", " + itof.Name;
+                            }
+                        }
+                        Console.WriteLine(t.Sender.Name + " wants your " + t.RequestedItem.Name);
+                        if (offeredList != "")
+                        {
+                            Console.WriteLine("They offer: " + offeredList);
+                        }
+                        Console.WriteLine("Status: " + t.Status);
+                        Console.WriteLine(); // tom rad för kosmetisk anledning hehe
                         incomingTr = true;
                     }
                 }
                 if (incomingTr == false)
                 {
-                    Console.WriteLine("(no incoming requests)");
+                    Console.WriteLine("[no requests to show]");
                 }
-                Console.WriteLine("---Your outgoing requests--");
-
+                Console.WriteLine("\n---Your outgoing requests---");
+                //outgoing spm du har skickat
                 bool outgoingTr = false;
                 foreach (Trade t in trades)
-                { //kolla om användarens email är samma som den inloggades
+                {
                     if (t != null && t.Sender != null && t.Sender.Email == active_user.Email)
                     {
-                        Console.WriteLine(
-                            "Sent to "
-                                + t.Receiver.Name
-                                + ": wants "
-                                + t.RequestedItem.Name
-                                + " in exchange for "
-                                + t.OfferedItem.Name
-                                + "["
-                                + t.Status
-                                + "]"
-                        );
+                        string offeredList = "";
+                        bool first = true;
+                        foreach (Item itof in t.OfferedItem)
+                        {
+                            if (first)
+                            {
+                                offeredList = itof.Name;
+                                first = false;
+                            }
+                            else
+                            {
+                                offeredList = offeredList + ", " + itof.Name;
+                            }
+                        }
+
+                        Console.WriteLine("Sent to " + t.Receiver.Name);
+                        Console.WriteLine("Wants: " + t.RequestedItem.Name);
+
+                        if (offeredList != "")
+                        {
+                            Console.WriteLine("You offered: " + offeredList);
+                        }
+                        Console.WriteLine("Status: " + t.Status);
+                        Console.WriteLine();
                         outgoingTr = true;
                     }
                 }
                 if (outgoingTr == false)
                 {
-                    Console.WriteLine("(no outgoing requests)");
+                    Console.WriteLine("[no outgoing requests]");
                 }
+
                 Console.WriteLine("\nPress enter to go back to menu");
                 Console.ReadLine();
                 break;
 
             case "5":
+            {
                 Console.Clear();
                 Console.WriteLine("--Handle trade requests--");
                 //flagga för att kolla om vi hittade några trades
@@ -486,31 +595,58 @@ while (running)
                     {
                         foundAny = true; //vi gittade minst en pending
                         //visa vilken trade det gäller alltså vem, vad de vill ha och erbjuder
-                        Console.WriteLine(
-                            t.Sender.Name
-                                + " wants your "
-                                + t.RequestedItem.Name
-                                + " in exchange for their "
-                                + t.OfferedItem.Name
-                        );
+                        string offeredList = "";
+                        bool printFirst = true;
+                        foreach (Item itof in t.OfferedItem)
+                        {
+                            if (printFirst)
+                            {
+                                offeredList = itof.Name;
+                                printFirst = false;
+                            }
+                            else
+                            {
+                                offeredList = offeredList + ", " + itof.Name;
+                            }
+                        }
+                        // skriv vad trade gäller
+
+                        Console.WriteLine("From: " + t.Sender.Name);
+                        Console.WriteLine("Wants: " + t.RequestedItem.Name);
+                        if (offeredList != "")
+                        {
+                            Console.WriteLine("They offer: " + offeredList);
+                        }
+                        else
+                        {
+                            Console.WriteLine("They offer: [nothing]");
+                        }
                         //fråga användaren vad den vill glra
                         Console.WriteLine("Accept (A) or Deny (D)?");
-                        string decision = Console.ReadLine().ToLower();
+                        string decision = Console.ReadLine();
+                        if (decision != null)
+                        {
+                            decision = decision.ToLower();
+                        }
+                        else
+                        {
+                            decision = "";
+                        }
                         if (decision == "a")
                         {
                             //om man accepterar = byt ägare på båda items
                             //ta bort requested item från receiver
                             t.Receiver.Items.Remove(t.RequestedItem);
                             //ta bort offered item från sender (den andra användare)
-                            t.Sender.Items.Remove(t.OfferedItem);
-                            //lägg till offered item in receiverns inventory
-                            t.Receiver.Items.Add(t.OfferedItem);
-                            //lägg till requested item i senderns inventory
                             t.Sender.Items.Add(t.RequestedItem);
 
-                            //uppdatera status
+                            foreach (Item itof in t.OfferedItem)
+                            {
+                                t.Sender.Items.Remove(itof);
+                                t.Receiver.Items.Add(itof);
+                            }
                             t.Status = TradeStatus.Accepted;
-                            Console.WriteLine("Trade accepted and items swapped");
+                            Console.WriteLine("Trade [accepted] and items swapped");
                         }
                         else if (decision == "d")
                         {
@@ -525,19 +661,34 @@ while (running)
                         List<string> tradeLines = new List<string>();
                         foreach (Trade tr in trades)
                         {
-                            tradeLines.Add(
+                            string offeredNames = "";
+                            bool first = true;
+                            foreach (Item itof in tr.OfferedItem)
+                            {
+                                if (first)
+                                {
+                                    offeredNames = itof.Name;
+                                    first = false;
+                                }
+                                else
+                                {
+                                    offeredNames = offeredNames + "|" + itof.Name;
+                                }
+                            }
+                            string row =
                                 tr.Sender.Email
-                                    + ","
-                                    + tr.Receiver.Email
-                                    + ","
-                                    + tr.RequestedItem.Name
-                                    + ","
-                                    + tr.OfferedItem.Name
-                                    + ","
-                                    + tr.Status.ToString()
-                            );
+                                + ","
+                                + tr.Receiver.Email
+                                + ","
+                                + tr.RequestedItem.Name
+                                + ","
+                                + offeredNames
+                                + ","
+                                + tr.Status.ToString();
+                            tradeLines.Add(row);
                         }
                         File.WriteAllLines("trades.txt", tradeLines);
+                        Console.WriteLine();
                     }
                 }
                 if (foundAny == false)
@@ -547,6 +698,9 @@ while (running)
                 Console.WriteLine("Press enter to go back");
                 Console.ReadLine();
                 break;
+
+                // case "6":
+            }
         }
     }
 }
