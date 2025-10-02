@@ -68,12 +68,13 @@ if (File.Exists("trades.txt"))
         if (tradeRow != null && tradeRow.Length > 0)
         {
             string[] parts = tradeRow.Split(',');
-            if (parts.Length == 4)
+            if (parts.Length == 5)
             {
                 string senderEmail = parts[0];
                 string receiverEmail = parts[1];
-                string itemName = parts[2];
-                string statusText = parts[3];
+                string requestedName = parts[2];
+                string offeredName = parts[3];
+                string statusText = parts[4];
                 //hitta sender
                 User sender = null;
                 foreach (User user in users)
@@ -95,14 +96,26 @@ if (File.Exists("trades.txt"))
                     }
                 }
                 //hitta item hos receiver
-                Item item = null;
-                if (receiver != null && receiver.Items != null)
+                Item requestedItem = null;
+                if (receiver != null)
                 {
                     foreach (Item it in receiver.Items)
                     {
-                        if (it.Name == itemName)
+                        if (it.Name == requestedName)
                         {
-                            item = it;
+                            requestedItem = it;
+                            break;
+                        }
+                    }
+                }
+                Item offeredItem = null;
+                if (sender != null)
+                {
+                    foreach (Item it in sender.Items)
+                    {
+                        if (it.Name == offeredName)
+                        {
+                            offeredItem = it;
                             break;
                         }
                     }
@@ -118,9 +131,14 @@ if (File.Exists("trades.txt"))
                     status = TradeStatus.Denied;
                 }
                 //lägg bara till om allt hittades
-                if (sender != null && receiver != null && item != null)
+                if (
+                    sender != null
+                    && receiver != null
+                    && requestedItem != null
+                    && offeredItem != null
+                )
                 {
-                    trades.Add(new Trade(sender, receiver, item, status));
+                    trades.Add(new Trade(sender, receiver, requestedItem, offeredItem, status));
                 }
             }
         }
@@ -305,7 +323,7 @@ while (running)
                     hasItems = true;
                     break; //om vi hittar minst ett item så stopp
                 }
-                if (!hasItems)
+                if (hasItems == false)
                 {
                     Console.WriteLine(owner.Name + " has no items. Press enter to go back");
                     Console.ReadLine();
@@ -337,8 +355,36 @@ while (running)
                     Console.ReadLine();
                     break;
                 }
+                //fråga vad den inloggade erbjuder
+                Console.WriteLine("Which of your items do you want to offer in exchange?");
+                foreach (Item it in active_user.Items)
+                {
+                    Console.WriteLine(it.Name + ": " + it.Description);
+                }
+                string offerName = Console.ReadLine().ToLower();
+                Item offeredItem = null;
+                foreach (Item it in active_user.Items)
+                {
+                    if (it.Name.ToLower() == offerName)
+                    {
+                        offeredItem = it;
+                        break;
+                    }
+                }
+                if (offeredItem == null)
+                {
+                    Console.WriteLine("You don't own that item, press enter to go back");
+                    Console.ReadLine();
+                    break;
+                }
                 // skapa trade (pending by default)
-                Trade trade = new Trade(active_user, owner, wantedItem, TradeStatus.Pending);
+                Trade trade = new Trade(
+                    active_user,
+                    owner,
+                    wantedItem,
+                    offeredItem,
+                    TradeStatus.Pending
+                );
                 trades.Add(trade);
                 //appenda till filen
                 string newTradeRow =
@@ -346,7 +392,9 @@ while (running)
                     + ","
                     + trade.Receiver.Email
                     + ","
-                    + trade.Item.Name
+                    + trade.RequestedItem.Name
+                    + ","
+                    + trade.OfferedItem.Name
                     + ","
                     + trade.Status.ToString();
                 File.AppendAllText("trades.txt", newTradeRow + Environment.NewLine);
@@ -367,15 +415,22 @@ while (running)
                     if (
                         t != null
                         && t.Receiver != null
-                        && t.Receiver.Email != null
-                        && active_user != null
-                        && active_user.Email != null
                         && t.Receiver.Email == active_user.Email
                         && t.Status == TradeStatus.Pending
-                    ) //om den inloggade är mottagare
+                    )
+                    //om den inloggade är mottagare
                     { //skriv ut vem som skickade samt vilket item och status
                         Console.WriteLine(
-                            t.Sender.Name + " " + "wants" + t.Item.Name + "[" + t.Status + "]"
+                            t.Sender.Name
+                                + " "
+                                + "wants"
+                                + t.RequestedItem.Name
+                                + " "
+                                + "in exchange for their"
+                                + t.OfferedItem.Name
+                                + "["
+                                + t.Status
+                                + "]"
                         );
                         incomingTr = true;
                     }
@@ -389,20 +444,15 @@ while (running)
                 bool outgoingTr = false;
                 foreach (Trade t in trades)
                 { //kolla om användarens email är samma som den inloggades
-                    if (
-                        t != null
-                        && t.Sender != null
-                        && t.Sender.Email != null
-                        && active_user != null
-                        && active_user.Email != null
-                        && t.Sender.Email == active_user.Email
-                    )
+                    if (t != null && t.Sender != null && t.Sender.Email == active_user.Email)
                     {
                         Console.WriteLine(
                             "Sent to "
                                 + t.Receiver.Name
-                                + " for "
-                                + t.Item.Name
+                                + ": wants "
+                                + t.RequestedItem.Name
+                                + " in exchange for "
+                                + t.OfferedItem.Name
                                 + "["
                                 + t.Status
                                 + "]"
@@ -418,10 +468,85 @@ while (running)
                 Console.ReadLine();
                 break;
 
-            // case "5":
-            //     Console.Clear();
-            //     Console.WriteLine("--Handle trade requests--");
-            // //visa alla pending requests som är skickade till inloggad användare
+            case "5":
+                Console.Clear();
+                Console.WriteLine("--Handle trade requests--");
+                //flagga för att kolla om vi hittade några trades
+                bool foundAny = false;
+                //loopa igenom alla trades i systemet
+                foreach (Trade t in trades)
+                {
+                    //kolla om traden är till den inloggade användaren och fortfarande pending
+                    if (
+                        t != null
+                        && t.Receiver != null
+                        && t.Receiver.Email == active_user.Email
+                        && t.Status == TradeStatus.Pending
+                    )
+                    {
+                        foundAny = true; //vi gittade minst en pending
+                        //visa vilken trade det gäller alltså vem, vad de vill ha och erbjuder
+                        Console.WriteLine(
+                            t.Sender.Name
+                                + " wants your "
+                                + t.RequestedItem.Name
+                                + " in exchange for their "
+                                + t.OfferedItem.Name
+                        );
+                        //fråga användaren vad den vill glra
+                        Console.WriteLine("Accept (A) or Deny (D)?");
+                        string decision = Console.ReadLine().ToLower();
+                        if (decision == "a")
+                        {
+                            //om man accepterar = byt ägare på båda items
+                            //ta bort requested item från receiver
+                            t.Receiver.Items.Remove(t.RequestedItem);
+                            //ta bort offered item från sender (den andra användare)
+                            t.Sender.Items.Remove(t.OfferedItem);
+                            //lägg till offered item in receiverns inventory
+                            t.Receiver.Items.Add(t.OfferedItem);
+                            //lägg till requested item i senderns inventory
+                            t.Sender.Items.Add(t.RequestedItem);
+
+                            //uppdatera status
+                            t.Status = TradeStatus.Accepted;
+                            Console.WriteLine("Trade accepted and items swapped");
+                        }
+                        else if (decision == "d")
+                        {
+                            t.Status = TradeStatus.Denied;
+                            Console.WriteLine("Trade denied.");
+                        }
+                        else
+                        {
+                            //om man skriver någor annat än A eller D
+                            Console.WriteLine("No action taken..");
+                        }
+                        List<string> tradeLines = new List<string>();
+                        foreach (Trade tr in trades)
+                        {
+                            tradeLines.Add(
+                                tr.Sender.Email
+                                    + ","
+                                    + tr.Receiver.Email
+                                    + ","
+                                    + tr.RequestedItem.Name
+                                    + ","
+                                    + tr.OfferedItem.Name
+                                    + ","
+                                    + tr.Status.ToString()
+                            );
+                        }
+                        File.WriteAllLines("trades.txt", tradeLines);
+                    }
+                }
+                if (foundAny == false)
+                {
+                    Console.WriteLine("You have no pending trade requests.");
+                }
+                Console.WriteLine("Press enter to go back");
+                Console.ReadLine();
+                break;
         }
     }
 }

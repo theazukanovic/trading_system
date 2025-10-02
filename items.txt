@@ -2,3 +2,5 @@ thea,Labubu,Real labubu in pink color
 thea,Massage gun,Never used massage gun 
 thea,Dried mango,homemade dired mango
 thea,Car,Yellow mini cooper
+maja,Labubu ,Blue real labubu
+maja,Risifrutti,delicious risifrutti for breakfast
