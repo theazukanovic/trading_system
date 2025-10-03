@@ -2,24 +2,37 @@ namespace App;
 
 public class Trade
 {
-    public User Sender; //den som vill ha item
-    public User Receiver; //den som äger item
-    public Item RequestedItem; //det man vill ha
-    public List<Item> OfferedItem; // flera erbjudna items
-    public TradeStatus Status; //pending, accepted or denied.
+    public User Sender;
+    public User Receiver;
+    public List<Item> Items;
+    public TradeStatus Status;
 
-    public Trade(
-        User sender,
-        User receiver,
-        Item requestedItem,
-        List<Item> offeredItem,
-        TradeStatus status
-    )
+    public Trade(User sender, User receiver, List<Item> items, TradeStatus status)
     {
         Sender = sender;
         Receiver = receiver;
-        RequestedItem = requestedItem;
-        OfferedItem = offeredItem;
+        Items = items;
         Status = status;
+    }
+
+    public void Accept()
+    {
+        foreach (Item item in Items)
+        {
+            if (item.Owner == Receiver)
+            {
+                Receiver.Items.Remove(item);
+                Sender.Items.Add(item);
+                item.Owner = Sender;
+            }
+            else if (item.Owner == Sender)
+            {
+                Sender.Items.Remove(item);
+                Receiver.Items.Add(item);
+                item.Owner = Receiver;
+            }
+        }
+
+        Status = TradeStatus.Accepted;
     }
 }

@@ -66,7 +66,7 @@ if (File.Exists("trades.txt"))
 
     foreach (string tradeRow in tradeLines)
     {
-        // hoppa över null/empty rader
+        // hoppa över null eller empty rader
         if (tradeRow != null && tradeRow != "")
         {
             string[] parts = tradeRow.Split(',');
@@ -166,7 +166,7 @@ while (running)
     if (active_user == null)
     {
         Console.Clear();
-        Console.WriteLine("---Welcome to trading system!---"); //// kommentar till mig själv:måste lägga till att registrera account
+        Console.WriteLine("---Welcome to trading system!---");
         Console.WriteLine("1) Log in");
         Console.WriteLine("2) Make an account");
 
@@ -325,7 +325,7 @@ while (running)
                 Console.ReadLine();
                 break;
 
-            case "4":
+            case "4": // request trade
                 Console.Clear();
                 Console.WriteLine("---Request a trade---");
 
@@ -418,8 +418,9 @@ while (running)
                     string pick = Console.ReadLine();
 
                     if (string.IsNullOrEmpty(pick))
+                    {
                         break; // avsluta när enter trycks
-
+                    }
                     int i;
                     bool pickedNumber = int.TryParse(pick, out i);
 
@@ -583,7 +584,7 @@ while (running)
                 Console.Clear();
                 Console.WriteLine("--Handle trade requests--");
 
-                // flagga för att se om vi hittade minst en pending trade till inloggade
+                //se om vi hittade minst en pending trade till inloggade
                 bool foundAny = false;
 
                 // Loopa igenom alla trades

@@ -1,4 +1,0 @@
-thea,iPhone 13,blue
-thea,iPad mini,new
-dino,Bone,Bone with chicken flavor
-dino,Toy,A banana toy
