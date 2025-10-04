@@ -1,0 +1,4 @@
+thea,iPhone,iPhone 16 brand new in color pink
+thea,Car,Red lamborgini
+dino,Toy,fun chewtoy
+dino,bone,good chickenbone
