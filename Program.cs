@@ -59,101 +59,125 @@ if (File.Exists("items.txt"))
     }
 }
 
-//filhantering: läsa in trades
-if (File.Exists("trades.txt"))
+//Filhantering: Trades
+if (File.Exists("trades.txt")) // kolla om trades.txt finns
 {
-    string[] tradeLines = File.ReadAllLines("trades.txt");
+    string[] tradeLines = File.ReadAllLines("trades.txt"); // läser alla rader i trades.txt
+    int i = 0; // index för att gå igenom filen rad för rad
 
-    foreach (string tradeRow in tradeLines)
+    while (i < tradeLines.Length) // loopa tills vi passerarr sista raden
     {
-        // hoppa över null eller empty rader
-        if (tradeRow != null && tradeRow != "")
+        string firstLine = tradeLines[i]; // läser in första raden för en trade
+        if (firstLine == null || firstLine == "") // om raden är tom eller null
         {
-            string[] parts = tradeRow.Split(',');
-            if (parts.Length == 5)
+            i++; // gå viade till nästa varv
+            continue; // hoppa över resten och börja om på nästa rad
+        }
+
+        string[] firstParts = firstLine.Split(',');
+        if (firstParts.Length == 2 && firstParts[0] != "-")
+        {
+            string senderName = firstParts[0];
+            string receiverName = firstParts[1];
+
+            // hitta sender
+            User? sender = null;
+            foreach (User user in users)
             {
-                string senderEmail = parts[0];
-                string receiverEmail = parts[1];
-                string requestedName = parts[2];
-                string offeredNames = parts[3];
-                string statusText = parts[4];
-
-                // hitta sender
-                User? sender = null;
-                foreach (User user in users)
+                if (user.Name == senderName)
                 {
-                    if (user.Email == senderEmail)
-                    {
-                        sender = user;
-                        break;
-                    }
+                    sender = user;
+                    break;
+                }
+            }
+
+            // hitta receiver
+            User? receiver = null;
+            foreach (User user in users)
+            {
+                if (user.Name == receiverName)
+                {
+                    receiver = user;
+                    break;
+                }
+            }
+
+            List<Item> tradeItems = new List<Item>(); // lista med alla items i traden, wants och offered
+            TradeStatus status = TradeStatus.Pending; // default om statusraden saknas
+            i++; // hoppa till nästa rad
+
+            while (i < tradeLines.Length) // looopa raden som tillhör denna trade
+            {
+                string row = tradeLines[i]; // aktuell rad
+                if (row == null || row == "") // tom rad = hoppa
+                {
+                    i++; // gå till nästa rad
+                    continue; // hoppa resten av varvet
                 }
 
-                // hitta receiver
-                User? receiver = null;
-                foreach (User user in users)
+                string[] part = row.Split(',');
+                // Statusrad: "-,Status"
+                if (part.Length == 2 && part[0] == "-") // om första delen är " - " så är detta statusraden
                 {
-                    if (user.Email == receiverEmail)
+                    string low = part[1] == null ? "" : part[1].ToLower(); // ok med lowcaps
+                    if (low == "accepted")
                     {
-                        receiver = user;
-                        break;
+                        status = TradeStatus.Accepted; // sätt status accepted om accepted
                     }
-                }
-
-                // hitta requested item hos receiver
-                Item? requestedItem = null;
-                if (receiver != null)
-                {
-                    foreach (Item it in receiver.Items)
+                    else if (low == "denied")
                     {
-                        if (it.Name == requestedName)
+                        status = TradeStatus.Denied; // sätt status denied om denied
+                    }
+                    else
+                    {
+                        status = TradeStatus.Pending; // allt annat blir pending
+                    }
+                    i++; // flytta indec efter statusraden
+                    break; // klar med denna trade
+                }
+                // Itemrad
+                else if (part.Length == 2)
+                {
+                    string itemName = part[0];
+                    string ownerName = part[1];
+
+                    User? owner = null;
+                    foreach (User user in users)
+                    {
+                        if (user.Name == ownerName)
                         {
-                            requestedItem = it;
+                            owner = user;
                             break;
                         }
                     }
-                }
 
-                // bygg offeredlist
-                List<Item> offeredItems = new List<Item>();
-                if (sender != null && offeredNames != "")
-                {
-                    string[] offeredNameList = offeredNames.Split('|');
-                    foreach (string oneName in offeredNameList)
+                    if (owner != null) // om ägare hittad
                     {
-                        // hoppa över tomma strängar
-                        if (oneName != "")
+                        foreach (Item item in owner.Items) // leta upp item via namn i ägarens lista
                         {
-                            foreach (Item it in sender.Items)
+                            if (item.Name == itemName) // matcha på itemets namn
                             {
-                                if (it.Name == oneName)
-                                {
-                                    offeredItems.Add(it);
-                                    break; // lägg bara till en gång per namn
-                                }
+                                tradeItems.Add(item); // lägg till itemet i tradens item lista
+                                break; // klart, lägg ej till dubbelt
                             }
                         }
                     }
+                    i++; // gå vidare till nästa rad som hör till traden
                 }
-
-                // status
-                TradeStatus status = TradeStatus.Pending;
-                string statusLow = statusText.ToLower();
-                if (statusLow == "accepted")
+                else
                 {
-                    status = TradeStatus.Accepted;
-                }
-                else if (statusLow == "denied")
-                {
-                    status = TradeStatus.Denied;
-                }
-
-                //lägg till traden
-                if (sender != null && receiver != null && requestedItem != null)
-                {
-                    trades.Add(new Trade(sender, receiver, requestedItem, offeredItems, status));
+                    i++; // om okänd radform, hoppa vidare
                 }
             }
+
+            if (sender != null && receiver != null && tradeItems.Count > 0) //kontroll så allt hittats
+            {
+                trades.Add(new Trade(sender, receiver, tradeItems, status)); // skapa trade och lägg i lista
+            }
+        }
+        else
+        {
+            i++; // om firstParts inte såg rätt ut, gå vidare
         }
     }
 }
