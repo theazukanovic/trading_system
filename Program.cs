@@ -350,12 +350,12 @@ while (running) // huvudloop för programmet
                 Console.Clear();
                 Console.WriteLine("---Request a trade---");
                 Console.Write("Owner name: ");
-                string? ownerName = Console.ReadLine(); // vem jag vill be om saker från
+                string? ownerName = Console.ReadLine().ToLower(); // vem jag vill be om saker från
 
                 User? owner = null; // refererart till den ägare man vill tradea med
                 foreach (User user in users) // leta upp rätt user via namn
                 {
-                    if (user != null && user != active_user && user.Name == ownerName) // ej mig själv
+                    if (user != null && user != active_user && user.Name.ToLower() == ownerName) // ej mig själv
                     {
                         owner = user;
                         break;
@@ -491,11 +491,11 @@ while (running) // huvudloop för programmet
                 trades.Add(trade); // lägg in trade i lista
 
                 string newTradeRow = ""; // bygg upp trade raderna som ska appendas i trades.txt
-                newTradeRow += trade.Sender.Name + ", " + trade.Receiver.Name + "\n"; // första raden
+                newTradeRow += trade.Sender.Name + "," + trade.Receiver.Name + "\n"; // första raden
 
                 foreach (Item item in trade.Items) // skriver alla items i traden rad för rad
                 {
-                    newTradeRow += item.Name + ", " + item.Owner.Name + "\n";
+                    newTradeRow += item.Name + "," + item.Owner.Name + "\n";
                 }
                 newTradeRow += "-," + trade.Status.ToString() + "\n"; // sista raden
                 File.AppendAllText("trades.txt", newTradeRow); // spara raden sist i trades.txt
@@ -755,11 +755,11 @@ while (running) // huvudloop för programmet
 
                 foreach (Trade tr in trades) // loopa alla trades
                 {
-                    outLines.Add(tr.Sender.Name + ", " + tr.Receiver.Name); // första rad med senderName och ReceiverName
+                    outLines.Add(tr.Sender.Name + "," + tr.Receiver.Name); // första rad med senderName och ReceiverName
 
                     foreach (Item item in tr.Items) // loopa alla items
                     {
-                        outLines.Add(item.Name + ", " + item.Owner.Name); // andra rad för ItemName och OwnerName
+                        outLines.Add(item.Name + "," + item.Owner.Name); // andra rad för ItemName och OwnerName
                     }
                     outLines.Add("-," + tr.Status.ToString()); // status rad
                 }

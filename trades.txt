@@ -1,5 +1,0 @@
-Dino, Thea
-Car, Thea
-Toy, Dino
-bone, Dino
--,Denied
